@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignment</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<input type="file" id="fileInput" />
+
+<script>
+document.getElementById('fileInput').addEventListener('change', handleFile);
+
+function handleFile(event) {
+  const file = event.target.files[0];
+
+  if (file) {
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      // console.log(jsonData)
+      findEmployeesWithConsecutiveDays(jsonData);
+      findEmployeesWithShortBreaks(jsonData);
+      findEmployeesWithLongShifts(jsonData);
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+
+function findEmployeesWithConsecutiveDays(data) {
+  console.log("Employees who worked for 7 consecutive days:");
+  let id = "WFS000054";
+  let startday;
+  let consecutive = 1;
+  let name;
+
+  data.forEach(employee =>{
+           if(employee["Position ID"]!== id){
+              if(consecutive>=7){
+                consecutive = 1;
+                console.log(name)
+              }
+               id = employee["Position ID"]
+               name = employee["Employee Name"]
+               startday = employee["Time"]
+           }
+           else {
+               if(employee["Time"]-startday==1){
+                        consecutive ++;
+                        startday = employee["Time"]
+               }
+           }
+          
+  })
+}
+
+
+function findEmployeesWithShortBreaks(data) {
+  console.log("Employees with short breaks:");
+  
+  let id = "WFS000054";
+  let shift = 0;
+  let name;
+  let endshifttime
+
+  data.forEach(employee => {
+    if (employee["Position ID"] !== id) {
+      shift = 1;
+      id = employee["Position ID"]
+      name = employee["Employee Name"]
+      endshifttime = employee["Time Out"]
+    }
+    else if(employee["Position ID"] === id){
+      if(shift<2){
+      var t = (employee["Time"] - endshifttime)
+      if (t > 1 &&  t<10) {
+        console.log(name)
+      }
+      shift++;
+    }    
+    }
+    else{
+      shift = 1;
+      endshifttime = employee["Time Out"]
+    }
+    }
+  )
+}
+
+
+function findEmployeesWithLongShifts(data) {
+  console.log("Employees with long shifts:");
+
+  data.forEach(employee => {
+    const time = employee["Timecard Hours (as Time)"]
+    const [hr,min] = time.split(':')
+    if(hr>14){
+      console.log(employee["Position ID"],employee["Employee Name"]);
+    }
+  });
+}
+
+</script>
+</body>
+</html>
